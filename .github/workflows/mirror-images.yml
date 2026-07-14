@@ -1,0 +1,53 @@
+name: Mirror Docker images to Alibaba ACR
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: postgres
+            source: postgres:16-alpine
+            target: postgres:16-alpine
+
+          - name: redis
+            source: redis:7-alpine
+            target: redis:7-alpine
+
+          - name: node
+            source: node:20-alpine
+            target: node:20-alpine
+
+          - name: minio
+            source: minio/minio:latest
+            target: minio:latest
+
+          - name: livekit
+            source: livekit/livekit-server:latest
+            target: livekit:latest
+
+    steps:
+      - name: Log in to Alibaba ACR
+        uses: docker/login-action@v3
+        with:
+          registry: crpi-yosq1kf9ms7yk5o5.cn-shanghai.personal.cr.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Pull source image
+        run: docker pull "${{ matrix.source }}"
+
+      - name: Tag image
+        run: |
+          docker tag "${{ matrix.source }}" \
+            "crpi-yosq1kf9ms7yk5o5.cn-shanghai.personal.cr.aliyuncs.com/ruijin-mdt/${{ matrix.target }}"
+
+      - name: Push image to ACR
+        run: |
+          docker push \
+            "crpi-yosq1kf9ms7yk5o5.cn-shanghai.personal.cr.aliyuncs.com/ruijin-mdt/${{ matrix.target }}"
